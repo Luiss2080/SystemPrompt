@@ -122,7 +122,7 @@ class PromptController extends Controller
         // Crear primera versión
         Version::create([
             'prompt_id' => $prompt->id,
-            'numero_version' => 1,
+            'numero' => 1,
             'contenido' => $prompt->contenido,
             'fecha_version' => now()
         ]);
@@ -192,7 +192,7 @@ class PromptController extends Controller
             $prompt->version_actual++;
             Version::create([
                 'prompt_id' => $prompt->id,
-                'numero_version' => $prompt->version_actual,
+                'numero' => $prompt->version_actual,
                 'contenido' => $validated['contenido'],
                 'contenido_anterior' => $prompt->contenido,
                 'motivo_cambio' => $validated['motivo_cambio'] ?? null,
@@ -344,10 +344,10 @@ class PromptController extends Controller
         $prompt->version_actual++;
         Version::create([
             'prompt_id' => $prompt->id,
-            'numero_version' => $prompt->version_actual,
+            'numero' => $prompt->version_actual,
             'contenido' => $version->contenido,
             'contenido_anterior' => $prompt->contenido,
-            'motivo_cambio' => "Restaurado desde versión {$version->numero_version}",
+            'motivo_cambio' => "Restaurado desde versión {$version->numero}",
             'fecha_version' => now()
         ]);
 
@@ -360,7 +360,7 @@ class PromptController extends Controller
             'prompt_id' => $prompt->id,
             'user_id' => Auth::id(),
             'accion' => 'restaurado',
-            'descripcion' => "Versión {$version->numero_version} restaurada",
+            'descripcion' => "Versión {$version->numero} restaurada",
             'fecha' => now()
         ]);
 
