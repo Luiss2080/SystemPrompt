@@ -2,68 +2,84 @@
 
 namespace App\Http\Controllers;
 
-use Illuminate\Http\Request;
-use App\Models\Prompt;
 use App\Models\Categoria;
 use App\Models\Etiqueta;
-use App\Models\User;
-use Illuminate\Support\Facades\DB;
+use App\Models\Prompt;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 
 class BuscadorController extends Controller
 {
     /**
-     * Búsqueda en tiempo real (AJAX)
+     * Pagina del buscador global. Acepta ?query= (formulario del header) o ?q=.
+     */
+    public function index(Request $request)
+    {
+        $termino = trim((string) ($request->input('query', $request->input('q', ''))));
+        $resultados = strlen($termino) >= 2 ? $this->buscar($termino, 10) : [];
+
+        return view('buscador.index', compact('termino', 'resultados'));
+    }
+
+    /**
+     * Busqueda en tiempo real (AJAX)
      */
     public function search(Request $request)
     {
-        $query = $request->input('q');
-        $resultados = [];
-        
-        if (strlen($query) < 2) {
+        $termino = trim((string) $request->input('q', ''));
+
+        if (strlen($termino) < 2) {
             return response()->json(['resultados' => []]);
         }
-        
-        // Buscar en Prompts
-        $prompts = Prompt::where('titulo', 'like', "%{$query}%")
-            ->orWhere('contenido', 'like', "%{$query}%")
-            ->limit(5)
+
+        return response()->json(['resultados' => $this->buscar($termino, 5)]);
+    }
+
+    /**
+     * Prompts propios o publicos, categorias y etiquetas que coinciden con el termino.
+     */
+    private function buscar(string $termino, int $limite): array
+    {
+        $like = '%' . addcslashes($termino, '%_\\') . '%';
+
+        $prompts = Prompt::where(function ($q) {
+                $q->where('user_id', Auth::id())->orWhere('es_publico', true);
+            })
+            ->where(function ($q) use ($like) {
+                $q->where('titulo', 'like', $like)->orWhere('contenido', 'like', $like);
+            })
+            ->limit($limite)
             ->get()
-            ->map(function ($prompt) {
-                return [
-                    'titulo' => $prompt->titulo,
-                    'descripcion' => substr($prompt->descripcion ?? $prompt->contenido, 0, 80),
-                    'tipo' => 'Prompt',
-                    'icono' => 'file-alt',
-                    'url' => route('prompts.show', $prompt->id)
-                ];
-            });
-        
-        // Buscar en Categorías
-        $categorias = Categoria::where('nombre', 'like', "%{$query}%")
-            ->limit(5)
+            ->map(fn ($prompt) => [
+                'titulo' => $prompt->titulo,
+                'descripcion' => mb_substr($prompt->descripcion ?? $prompt->contenido, 0, 80),
+                'tipo' => 'Prompt',
+                'icono' => 'file-alt',
+                'url' => route('prompts.show', $prompt->id),
+            ]);
+
+        $categorias = Categoria::where('nombre', 'like', $like)
+            ->limit($limite)
             ->get()
-            ->map(function ($categoria) {
-                return [
-                    'titulo' => $categoria->nombre,
-                    'descripcion' => $categoria->descripcion ?? 'Categoría',
-                    'tipo' => 'Categoría',
-                    'icono' => 'folder',
-                    'url' => route('prompts.index', ['categoria' => $categoria->id])
-                ];
-            });
-        
-        // Buscar en Etiquetas
-        $etiquetas = Etiqueta::where('nombre', 'like', "%{$query}%")
-            ->limit(5)
+            ->map(fn ($categoria) => [
+                'titulo' => $categoria->nombre,
+                'descripcion' => $categoria->descripcion ?? 'Categoria',
+                'tipo' => 'Categoria',
+                'icono' => 'folder',
+                'url' => route('prompts.index', ['categoria_id' => $categoria->id]),
+            ]);
+
+        $etiquetas = Etiqueta::where('nombre', 'like', $like)
+            ->limit($limite)
             ->get()
-            ->map(function ($etiqueta) {
-                return [
-                    'titulo' => $etiqueta->nombre,
-                    'descripcion' => 'Etiqueta',
-                    'tipo' => 'Etiqueta',
-                    'icono' => 'tag',
-                    'url' => route('prompts.index', ['etiqueta' => $etiqueta->id])
-                ];
-            });
+            ->map(fn ($etiqueta) => [
+                'titulo' => $etiqueta->nombre,
+                'descripcion' => 'Etiqueta',
+                'tipo' => 'Etiqueta',
+                'icono' => 'tag',
+                'url' => route('prompts.index', ['etiqueta' => $etiqueta->nombre]),
+            ]);
+
+        return $prompts->concat($categorias)->concat($etiquetas)->values()->all();
     }
 }
