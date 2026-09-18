@@ -1,7 +1,7 @@
 <div align="center">
   <img src="docs/assets/logo.svg" width="96" alt="Logo de SystemPrompt" />
   <h1>SystemPrompt (PromptVault)</h1>
-  <p><b>Base en Laravel 12 para una biblioteca personal de prompts de IA con categorías, etiquetas, versiones y roles: el modelo de datos y el panel de usuarios funcionan; la pantalla de prompts todavía no existe.</b></p>
+  <p><b>Base en Laravel 12 para una biblioteca personal de prompts de IA con categorías, etiquetas, versiones y roles: el modelo de datos y el panel de usuarios funcionan; la pantalla de prompts es funcional pero mínima.</b></p>
   <img src="https://img.shields.io/badge/estado-Esqueleto%20avanzado-orange?style=for-the-badge" alt="Estado: esqueleto avanzado" />
   <img src="https://img.shields.io/badge/Laravel-12-FF2D20?style=for-the-badge&logo=laravel&logoColor=white" alt="Laravel 12" />
   <img src="https://img.shields.io/badge/PHP-%E2%89%A58.2-777BB4?style=for-the-badge&logo=php&logoColor=white" alt="PHP 8.2 o superior" />
@@ -16,7 +16,7 @@
   </p>
 </div>
 
-SystemPrompt es una aplicación Laravel 12 cuya interfaz se llama **PromptVault**: un gestor de prompts para modelos de IA (título, contenido, categoría, etiquetas, IA de destino, favoritos, versiones, uso compartido) con cuatro roles (`admin`, `user`, `collaborator`, `guest`). **No es** todavía una plataforma usable de punta a punta: el CRUD de prompts tiene controlador y modelo, pero no tiene vistas, y crear o editar un prompt falla por una columna mal nombrada. Lo que sí funciona hoy es el acceso, el tablero por rol y la gestión de usuarios del administrador.
+SystemPrompt es una aplicación Laravel 12 cuya interfaz se llama **PromptVault**: un gestor de prompts para modelos de IA (título, contenido, categoría, etiquetas, IA de destino, favoritos, versiones, uso compartido) con cuatro roles (`admin`, `user`, `collaborator`, `guest`). **No es** todavía una plataforma usable de punta a punta: el CRUD de prompts ya tiene vistas mínimas y guarda versiones correctamente, pero falta pulir la interfaz. Lo que sí funciona hoy es el acceso, el tablero por rol y la gestión de usuarios del administrador.
 
 ## 🎬 Vista rápida
 
@@ -26,7 +26,7 @@ Capturas reales tomadas ejecutando el proyecto en local (SQLite y datos de los s
 |:---:|:---:|
 | <img src="docs/screenshots/dashboard.png" alt="Tablero de administrador de PromptVault con estadísticas de usuarios, prompts, categorías y etiquetas" width="420" /> | <img src="docs/screenshots/usuarios.png" alt="Listado de usuarios con filtros por rol, paginación y acciones" width="420" /> |
 
-> El menú lateral muestra muchas secciones (Plantillas, Borradores, Multimedia, ...) que hoy son enlaces vacíos (`href="#"`). Solo "Prompts", "Crear Prompt" y "Usuarios" apuntan a rutas reales, y las dos primeras responden con error (ver limitaciones).
+> El menú lateral muestra muchas secciones (Plantillas, Borradores, Multimedia, ...) que hoy son enlaces vacíos (`href="#"`). Solo "Prompts", "Crear Prompt" y "Usuarios" apuntan a rutas reales, y ya responden (con vistas mínimas).
 
 ## ✨ Características
 
@@ -37,8 +37,8 @@ Capturas reales tomadas ejecutando el proyecto en local (SQLite y datos de los s
 | Tablero por rol | `/dashboard` calcula estadísticas distintas para admin (usuarios, prompts, categorías, etiquetas, gráfico de distribución), usuario/colaborador (sus prompts) e invitado (prompts públicos). |
 | Gestión de usuarios (admin) | CRUD de `/admin/usuarios` con búsqueda, filtro por rol, paginación y modales de confirmación. |
 | Perfil | Ver y editar perfil, cambiar contraseña y subir avatar (`/perfil`). |
-| Modelo de prompts | Prompts con categoría, etiquetas (N:M), versiones, actividad y registros de "compartido" con token, tipo de acceso y expiración. `PromptController` implementa favoritos, contador de uso, compartir, historial y restaurar versión (sin vistas asociadas). |
-| Buscador | Endpoint AJAX `GET /buscador/search` que busca en prompts (más de 2 caracteres). La página `/buscador` no existe. |
+| Modelo de prompts | Prompts con categoría, etiquetas (N:M), versiones, actividad y registros de "compartido" con token, tipo de acceso y expiración. `PromptController` implementa favoritos, contador de uso, compartir, historial y restaurar versión (con vistas mínimas de listado, alta, edición, detalle e historial). |
+| Buscador | Endpoint AJAX `GET /buscador/search` que busca en prompts (más de 2 caracteres). La página `/buscador` lista prompts propios o públicos, categorías y etiquetas. |
 | Datos de ejemplo | 14 migraciones y 11 seeders: 21 usuarios, 10 prompts, 6 categorías (Programación, Redacción, Análisis de datos, Marketing, Educación, Diseño), 20 etiquetas, versiones, actividad y compartidos. |
 | Documentación interna | `docs/01`–`06`: estructura de BD, modelos y relaciones, roles y permisos, datos de ejemplo, credenciales de desarrollo y comandos. |
 
@@ -128,7 +128,7 @@ Con PHP 8.5 pueden aparecer avisos `Deprecated` de `PDO::MYSQL_ATTR_SSL_CA` prov
 
 ## 🧪 Pruebas
 
-Hay 25 tests (plantilla de Laravel Breeze más los de ejemplo). Con `php vendor/bin/phpunit` **pasan 4 y fallan 21**: la mayoría de las pruebas de autenticación crean usuarios con la fábrica sin `role_id` válido y chocan con la clave foránea de `roles`, y `ExampleTest` espera un 200 en `/`, que redirige a `/login`. No hay pruebas de los prompts, los usuarios ni los permisos, y no hay CI.
+Hay 28 tests que pasan con `php artisan test` (SQLite en memoria): autenticación, registro, perfil, páginas de prompts, versiones y buscador. Se retiraron los tests de plantilla de Breeze para verificación de correo, confirmación y restablecimiento de contraseña porque esas rutas no existen en esta app. No hay CI.
 
 ## 🔒 Seguridad
 
@@ -142,9 +142,6 @@ Avisos:
 
 ## 🚧 Lo que todavía no existe
 
-- **Pantallas de prompts**: no hay carpeta `resources/views/prompts`. `GET /prompts` responde 500 ("View [prompts.index] not found", comprobado), y lo mismo ocurre con crear, ver y editar.
-- **Bug al crear/editar prompts**: `PromptController` y el modelo `Version` usan `numero_version`, pero la migración `versiones` define la columna `numero`. Crear una versión falla con `no column named numero_version` (comprobado). El registro de un usuario nuevo redirige a `/prompts`, es decir, termina en el error.
-- `/buscador` (página) responde 500: solo existe el método `search`, no `index`.
 - Calendario: el controlador solo devuelve vistas vacías; `store`, `update` y `destroy` sin lógica.
 - Configuraciones: las secciones son vistas estáticas; el guardado no persiste ajustes.
 - Roles, permisos, reportes y respaldos: controladores/vistas presentes pero sin rutas. `ReportesController` habla de estudiantes, docentes, materias y calificaciones (resto de un proyecto académico anterior), y el tablero de usuarios/colaboradores deja variables `misMaterias` y `horarioHoy` vacías.
