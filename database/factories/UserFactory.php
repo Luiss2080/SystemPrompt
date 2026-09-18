@@ -2,6 +2,7 @@
 
 namespace Database\Factories;
 
+use App\Models\Role;
 use Illuminate\Database\Eloquent\Factories\Factory;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
@@ -24,6 +25,11 @@ class UserFactory extends Factory
     public function definition(): array
     {
         return [
+            // users.role_id es una FK obligatoria: crea el rol 'user' si aun no existe
+            'role_id' => fn () => Role::firstOrCreate(
+                ['nombre' => 'user'],
+                ['descripcion' => 'Usuario registrado estandar', 'nivel_acceso' => 10]
+            )->id,
             'name' => fake()->name(),
             'email' => fake()->unique()->safeEmail(),
             'email_verified_at' => now(),
